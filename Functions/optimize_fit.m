@@ -1,0 +1,329 @@
+function outstruct = optimize_fit(model, varargin)
+% Function for optimizing modelstructure class object to experimental data
+% using global optimization or local ensemble optimiztaion.
+
+    % creating input parser and parsing functions
+    p = inputParser;
+    checkName = @(x) ischar(x) || isstring(x) || iscell(x);
+    checkNameOrCell = @(x) ischar(x) || isstring(x) || ...
+        (iscell(x) && ( ischar(x{1}) || isstring(x{1}) ) );
+    checkBool = @(x) islogical(x) || isnumeric(x);
+    checkNameOrNum = @(x) isnumeric(x) || ischar(x) || isstring(x) || ...
+        (iscell(x) && ( ischar(x{1}) || isstring(x{1}) ) );
+    checkFunction = @(x)isa(x,'function_handle');
+    checkNumOrCell = @(x) isnumeric(x) || iscell(x);
+    checkModel = @(x)isa(x,'modelstructure');
+    
+    
+    % modelstructure class object to be optimized
+    addRequired(p,'model',checkModel);
+    % method for optimization, 'particleswarm','patternsearch',or
+    % 'ensemble_generation'
+    addParameter(p,'Opt_method','particleswarm',checkName);
+    % indices or names of parameters to be optimized
+    addParameter(p,'params_to_opt',[],checkNameOrNum);
+    % experimental data conditions to optimize model to 
+    addParameter(p,'conditions_to_opt',1,@isnumeric);
+    % weights for the optimization conditions
+    addParameter(p,'condition_weights',[],@isnumeric);
+    % model species with data to fit to.
+    addParameter(p,'species_to_opt',[],@isnumeric);
+    % SwarmSize input for particleswarm
+    addParameter(p,'SwarmSize',100,@isnumeric);
+    % Starting points for particleswarm algorithm or initial ensemble
+    % points for ensemble based methods
+    addParameter(p,'StartingPoints',[],@isnumeric);
+    % Number of sets to generate for ensemble based methods
+    addParameter(p,'n_sets',1000,@isnumeric);
+    % Number of sets to keep for ensemble based methods
+    addParameter(p,'best_n_sets',[],@isnumeric);
+    % Timepoints to simulate optimized model at
+    addParameter(p,'tspan',[0,21],@isnumeric);
+    % Minimum limit of detection for assay being used.
+    addParameter(p,'error_limit',1e-4,@isnumeric);
+    % Error function to use for optimization
+    addParameter(p,'fit_function',@(y,exp) nse(y,exp),checkFunction);
+    % Maximum number of iterations for optimization function.
+    addParameter(p,'maxIterations',1000,@isnumeric);
+    % Filename to save results
+    addParameter(p,'savename',[],checkName);
+    % Set to 1 to calculate drop in AUC between first and last dose
+    addParameter(p,'calculate_dAUC',0,checkBool);
+    % Species to calcualte AUC if set to 1
+    addParameter(p,'dAUC_species',1,@isnumeric);
+    % Type of data -- timecourse of PK metric
+    addParameter(p,'data_type','timecourse',checkName);
+    p.KeepUnmatched = false;
+    p.CaseSensitive = false;
+    
+    parse(p, model, varargin{:});
+    
+    model = p.Results.model;
+    Opt_method = p.Results.Opt_method;
+    params_to_opt = p.Results.params_to_opt;
+    conditions_to_opt = p.Results.conditions_to_opt;
+    condition_weights = p.Results.condition_weights;
+    species_to_opt = p.Results.species_to_opt;
+    SwarmSize = p.Results.SwarmSize;
+    StartingPoints = p.Results.StartingPoints;
+    n_sets = p.Results.n_sets;
+    best_n_sets = p.Results.best_n_sets;
+    tspan = p.Results.tspan;
+    error_limit= p.Results.error_limit;
+    fit_function = p.Results.fit_function;
+    savename = p.Results.savename;
+    maxIterations = p.Results.maxIterations;
+    calculate_dAUC = p.Results.calculate_dAUC;
+    dAUC_species = p.Results.dAUC_species;
+    data_type = p.Results.data_type;
+    
+    experimental_data = model.experimental_data;
+    metric_data = model.metric_data;
+    bounds = model.bounds;
+    parameter_names = model.parameter_names;
+    
+    if isempty(condition_weights) && isempty(metric_data)
+       condition_weights = ones(1,length(model.experimental_data)); 
+    elseif isempty(condition_weights) && ~isempty(metric_data)
+       condition_weights = ones(1,length(model.metric_data));
+    end
+    if isempty(best_n_sets)
+       best_n_sets = n_sets; 
+    end
+    
+    if isnumeric(params_to_opt)
+        params_to_opt = parameter_names(params_to_opt);
+    end
+    
+    if isempty(species_to_opt)
+       species_to_opt = 1:length(model.data_species); 
+    end
+    if strcmp(Opt_method,'particleswarm')
+    % running partcleswarm here if specified
+    
+        % requiring experimental data, parameters to optimize, and bounds
+        % for optimization
+        assert((~isempty(experimental_data)||~isempty(metric_data)) && ~isempty(params_to_opt) ...
+            && ~isempty(bounds), 'Missing Required Optimization Fields')
+        
+        % separating parameters based on optimized v. constant parameters
+        if strcmp(data_type,'timecourse')
+            varargin_fitness = {'params_to_opt',params_to_opt,...
+                'error_limit',error_limit,...
+                'func',fit_function,'conditions_to_opt',conditions_to_opt,...
+                'species_to_opt',species_to_opt,'condition_weights',condition_weights};
+
+            func = @(k) calc_timecourse_fitness(model,k,varargin_fitness{:});
+        elseif strcmp(data_type,'metrics')
+            varargin_fitness = {'params_to_opt',params_to_opt,...
+                'conditions_to_opt',conditions_to_opt,...
+                'species_to_opt',species_to_opt,'condition_weights',condition_weights};
+                    
+            func = @(k) calc_metric_fitness(model,k,varargin_fitness{:});
+            
+        end
+        bounds = reformat_boundaries(bounds,params_to_opt);
+        lb = bounds(:,1); ub = bounds(:,2);
+        
+        options = optimoptions('particleswarm','SwarmSize',SwarmSize,'InitialSwarmMatrix',StartingPoints,...
+            'MaxIterations',maxIterations);
+        
+        [k,err,exitflag,~] = particleswarm(func,length(params_to_opt),lb,ub,options);
+        
+       model = set_model_parameters(model,params_to_opt,k);
+       
+       n_conditions = length(model.dose_schedules);
+       y = cell(n_conditions,1);
+       for ii = 1:n_conditions
+          [~,y{ii}] = model.evaluate(tspan,ii); 
+       end
+       
+       
+       optimized_params = cell(length(params_to_opt),2);
+       optimized_params(:,1) = params_to_opt;
+       optimized_params(:,2) = num2cell(k);
+       outstruct.optimized_params = optimized_params;
+       outstruct.exitflag = exitflag;
+       outstruct.y = y;
+       outstruct.tspan = tspan;
+    
+
+    elseif strcmp(Opt_method,'ensemble_generation')
+        assert(~isempty(bounds) & ~isempty(params_to_opt)...
+            ,'Sampling settings missing')           
+        
+        
+        bounds = reformat_boundaries(bounds,params_to_opt);
+        ensemble = create_initial_swarm(StartingPoints,bounds,params_to_opt,n_sets);
+        
+        
+        n_conditions = length(model.dose_schedules);
+        y = cell(n_conditions,n_sets);
+        err = zeros(n_sets,1);
+
+        for ii = 1:n_sets
+
+           
+            
+            for jj = 1:n_conditions
+                model = set_model_parameters(model,params_to_opt,ensemble(:,ii));
+                [t_tmp,y_tmp] = model.evaluate(tspan,jj);  
+                y{jj,ii} = y_tmp;
+            end
+            
+            if calculate_dAUC
+                y_tmp = y(conditions_to_opt,ii);
+                dAUC_info = POST_calculate_dose_AUC(model,y_tmp,t_tmp,'species',dAUC_species);
+                err(ii) = dAUC_info.dAUC{1};
+                
+                
+            else
+                
+                if strcmp(data_type,'timecourse')
+                    varargin_fitness = {'params_to_opt',params_to_opt,...
+                    'error_limit',error_limit,...
+                    'func',fit_function,'conditions_to_opt',conditions_to_opt,...
+                    'species_to_opt',species_to_opt,'condition_weights',condition_weights};
+
+                    func = @(k) calc_timecourse_fitness(model,k,varargin_fitness{:});
+
+                    err(ii) = func(ensemble(:,ii));
+
+                elseif strcmp(data_type,'metrics')
+                    
+                    varargin_fitness = {'params_to_opt',params_to_opt,...
+                        'conditions_to_opt',conditions_to_opt,...
+                        'species_to_opt',species_to_opt,'condition_weights',condition_weights};
+                    
+                    func = @(k) calc_metric_fitness(model,k,varargin_fitness{:});
+                    err(ii) = func(ensemble(:,ii));
+                    
+                    
+                    
+                end
+            end
+            
+            fprintf('Finished %i of %i sets.\n',ii,n_sets)
+        end
+        
+        if isempty(best_n_sets)
+            best_n_sets = n_sets;
+        end
+        [~,ind] = sort(err);
+            
+        err = err(ind(1:best_n_sets));
+        params = ensemble(:,ind(1:best_n_sets));
+        outstruct.optimized_parameter_names = params_to_opt;
+        outstruct.ensemble = params;
+        outstruct.y = y(:,ind(1:best_n_sets));
+        outstruct.tspan = tspan;
+        outstruct.err = err;
+        
+        
+    elseif strcmp(Opt_method,'patternsearch')
+        assert(~isempty(bounds) & ~isempty(params_to_opt)...
+            ,'Optimization settings missing')    
+        
+        if strcmp(data_type,'timecourse')
+            varargin_fitness = {'params_to_opt',params_to_opt,...
+                'error_limit',error_limit,...
+                'func',fit_function,'conditions_to_opt',conditions_to_opt,...
+                'species_to_opt',species_to_opt,'condition_weights',condition_weights};
+            func = @(k) calc_timecourse_fitness(model,k,varargin_fitness{:});
+            
+        elseif strcmp(data_type,'metrics')
+            varargin_fitness = {'params_to_opt',params_to_opt,...
+                'conditions_to_opt',conditions_to_opt,...
+                'species_to_opt',species_to_opt,'condition_weights',condition_weights};
+
+            func = @(k) calc_metric_fitness(model,k,varargin_fitness{:});
+        end
+        
+        
+        bounds = reformat_boundaries(bounds,params_to_opt);
+        initial_swarm = create_initial_swarm(StartingPoints,bounds,params_to_opt,n_sets);
+        
+        options = optimoptions('patternsearch','UseParallel',false,'MaxIterations',maxIterations...
+            ,'MaxFunctionEvaluations',20*maxIterations);
+        
+        optimized_params = zeros(size(initial_swarm,1),size(initial_swarm,2));
+        err = zeros(size(initial_swarm,2),1);
+        exitflag = zeros(size(initial_swarm,2),1);
+
+        ub = bounds(:,2);lb = bounds(:,1);
+        for ii = 1:size(initial_swarm,2)
+            k_opt = initial_swarm(:,ii);
+            [tmp1,tmp2,tmp3] = patternsearch(func,k_opt,[],[],[],[],lb,ub,options);
+            
+            optimized_params(:,ii) = tmp1;
+            exitflag(ii) = tmp3;
+            err(ii) = tmp2;
+            fprintf('Finished run %2.0i of %3.0i\n',ii,n_sets)
+        end
+        
+        if isempty(best_n_sets)
+            best_n_sets = n_sets;
+        end
+        [~,ind] = sort(err);
+            
+        err = err(ind(1:best_n_sets));
+        optimized_params = optimized_params(:,ind(1:best_n_sets));
+        
+        n_conditions = length(model.dose_schedules);
+        y = cell(n_conditions,n_sets);
+        for jj = 1:n_sets
+            for ii = 1:n_conditions
+               model = set_model_parameters(model,params_to_opt,optimized_params(:,jj));
+               [~,y{ii,jj}] = model.evaluate(tspan,ii);
+            end
+        end
+        outstruct.optimized_parameter_names = params_to_opt;
+        outstruct.ensemble = optimized_params;
+        outstruct.y = y;
+        outstruct.tspan = tspan;
+        outstruct.exitflags = exitflag;
+    else
+        error('Unknown Optimization Method.')
+    end
+    
+    outstruct.model = model;
+    outstruct.fitness = err;
+    if ~isempty(savename)
+       save(savename,'outstruct') 
+    end
+    
+    
+    
+end
+
+function bounds = reformat_boundaries(old_bounds,params_to_opt)
+    for ii = 1:length(params_to_opt)
+        tmp1 = append(params_to_opt{ii},"_bounds");
+        tmp2 = append("bounds(",num2str(ii),",:",") = old_bounds.('",tmp1,"');");
+        eval(tmp2);
+    end  
+end
+
+function model_out = set_model_parameters(model,params_to_opt,k)
+        for ii = 1:length(params_to_opt)
+            model.parameters.(params_to_opt{ii}) = k(ii);
+        end
+        
+        model_out = model;
+end
+
+function initial_swarm = create_initial_swarm(StartingPoints,bounds,params_to_opt,n_sets)
+    rng(08282023)
+    if isempty(StartingPoints)
+        initial_swarm = bounds(:,1) + rand(length(params_to_opt),n_sets).*(bounds(:,2)...
+            -bounds(:,1));
+    elseif size(StartingPoints,2) >= n_sets
+        initial_swarm = StartingPoints(:,1:n_sets);
+    else
+        tmp1 = bounds(:,1) + rand(length(params_to_opt),n_sets-size(StartingPoints,2).*(bounds(:,2)...
+            -bounds(:,1)));
+        initial_swarm = [StartingPoints, tmp1];
+    end    
+    
+end
+
