@@ -5,13 +5,13 @@ function experimental_data = initialize_Rakhit_PK_data()
     addpath(genpath('Rakhit Data'));
     
     % Loading 0.1 ug/kg data.
-    dose_1_01_ugkg_timepoints = xlsread('IL12 PK.xlsx','A4:A8')';
+    dose_1_01_ugkg_timepoints = xlsread('Rakhit PK Data.xlsx','A4:A8')';
     dose_1_01_ugkg_timepoints = 1+dose_1_01_ugkg_timepoints./24;
-    dose_1_01_ugkg = xlsread('IL12 PK.xlsx','C4:C8')';
+    dose_1_01_ugkg = xlsread('Rakhit PK Data.xlsx','C4:C8')';
     
-    dose_6_01_ugkg_timepoints = xlsread('IL12 PK.xlsx','A19:A24')';
+    dose_6_01_ugkg_timepoints = xlsread('Rakhit PK Data.xlsx','A19:A24')';
     dose_6_01_ugkg_timepoints = 43 + dose_6_01_ugkg_timepoints./24;
-    dose_6_01_ugkg = xlsread('IL12 PK.xlsx','C19:C24')';
+    dose_6_01_ugkg = xlsread('Rakhit PK Data.xlsx','C19:C24')';
     
     combined_01_ugkg_timepoints = [dose_1_01_ugkg_timepoints, dose_6_01_ugkg_timepoints];
     combined_01_ugkg_PK = [dose_1_01_ugkg,dose_6_01_ugkg];
@@ -20,13 +20,13 @@ function experimental_data = initialize_Rakhit_PK_data()
     
     
     % Loading 0.5 ug/kg data.
-    dose_1_05_ugkg_timepoints = xlsread('IL12 PK.xlsx','E4:E13')';
+    dose_1_05_ugkg_timepoints = xlsread('Rakhit PK Data.xlsx','E4:E13')';
     dose_1_05_ugkg_timepoints = 1+dose_1_05_ugkg_timepoints./24;
-    dose_1_05_ugkg = xlsread('IL12 PK.xlsx','G4:G13')';
+    dose_1_05_ugkg = xlsread('Rakhit PK Data.xlsx','G4:G13')';
     
-    dose_6_05_ugkg_timepoints = xlsread('IL12 PK.xlsx','E19:E27')';
+    dose_6_05_ugkg_timepoints = xlsread('Rakhit PK Data.xlsx','E19:E27')';
     dose_6_05_ugkg_timepoints = 43 + dose_6_05_ugkg_timepoints./24;
-    dose_6_05_ugkg = xlsread('IL12 PK.xlsx','G19:G27')';
+    dose_6_05_ugkg = xlsread('Rakhit PK Data.xlsx','G19:G27')';
     
     combined_05_ugkg_timepoints = [dose_1_05_ugkg_timepoints, dose_6_05_ugkg_timepoints];
     combined_05_ugkg_PK = [dose_1_05_ugkg,dose_6_05_ugkg];
@@ -34,13 +34,13 @@ function experimental_data = initialize_Rakhit_PK_data()
     combined_05_ugkg = {combined_05_ugkg_timepoints, combined_05_ugkg_PK};
     
     % Loading 1.0 ug/kg data.
-    dose_1_1_ugkg_timepoints = xlsread('IL12 PK.xlsx','I4:I13')';
+    dose_1_1_ugkg_timepoints = xlsread('Rakhit PK Data.xlsx','I4:I13')';
     dose_1_1_ugkg_timepoints = 1+dose_1_1_ugkg_timepoints./24;
-    dose_1_1_ugkg = xlsread('IL12 PK.xlsx','K4:K13')';
+    dose_1_1_ugkg = xlsread('Rakhit PK Data.xlsx','K4:K13')';
     
-    dose_6_1_ugkg_timepoints = xlsread('IL12 PK.xlsx','I19:I27')';
+    dose_6_1_ugkg_timepoints = xlsread('Rakhit PK Data.xlsx','I19:I27')';
     dose_6_1_ugkg_timepoints = 43 + dose_6_1_ugkg_timepoints./24;
-    dose_6_1_ugkg = xlsread('IL12 PK.xlsx','K19:K27')';
+    dose_6_1_ugkg = xlsread('Rakhit PK Data.xlsx','K19:K27')';
     
     combined_1_ugkg_timepoints = [dose_1_1_ugkg_timepoints, dose_6_1_ugkg_timepoints];
     combined_1_ugkg_PK = [dose_1_1_ugkg,dose_6_1_ugkg];
