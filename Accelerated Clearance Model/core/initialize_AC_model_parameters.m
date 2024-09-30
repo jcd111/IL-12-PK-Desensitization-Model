@@ -1,4 +1,4 @@
-function [parameters, bounds, parameter_names] = initialize_SU_model_parameters()
+function [parameters, bounds, parameter_names] = initialize_AC_model_parameters()
 % Function for initializing parameters for linear FB model with i.v. dose.
 
     parameters = struct();
@@ -42,10 +42,23 @@ function [parameters, bounds, parameter_names] = initialize_SU_model_parameters(
     bounds.F_bounds = [1e-2, 1];
     parameters.F = 1;
     
-    % SQ transport rate.  Units:  1/day
-    % Estimating
-    bounds.Jbs_bounds = [1e-4 5];
-    parameters.Jbs = mean(bounds.Jbs_bounds);
+    % SQ to L normalized flow rate.  Units:  1/day
+    % Taken from Milewski et al.
+    bounds.Jls_bounds = [0.7821, 2.9083];
+    parameters.Jls = mean(bounds.Jls_bounds);
+    
+    % Lymphatic System Volume.  Units.mL
+    % Taken from Varkhede et al.
+    parameters.Vl = 8.88+8.84+0.5*(13.49+17.58);
+    bounds.Vl_bounds = nan(1,2);
+    
+    % L to Blood normalized flow rate.  Units: 1/day
+    % Calculated from Varkhede et al.
+    flow_rate = 0.06*1000; %mL/hr;
+    flow_rate = flow_rate*24; %mL/day;
+    parameters.Jbl = flow_rate./parameters.Vl; %/day
+    bounds.Jbl_bounds = [0.1*parameters.Jbl 10*parameters.Jbl];
+    
     
     % Initial concentration of IL-12 receptor in blood. Units: pmol/cell
     % Source: Number of T-cells in blood from Sender et al., Binding sites
@@ -75,6 +88,9 @@ function [parameters, bounds, parameter_names] = initialize_SU_model_parameters(
     % Fixed, taken from Motzer et al paper.
     parameters.Vs = 1;
     bounds.Vs_bounds = nan(1,2);
+    
+    
+
     
     
     % Making array of parameter names

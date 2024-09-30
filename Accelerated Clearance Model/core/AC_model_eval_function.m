@@ -1,9 +1,10 @@
-function [x,y,sol] = SU_model_eval_function(obj,tspan,dose_info)
+function [x,y,sol] = AC_model_eval_function(obj,tspan,dose_info)
 % Eval function for simple FB model with linear FB and i.v. dosing
 
     % Getting params
     k = obj.parameters;
-    Jbs = k.Jbs;
+    Jls = k.Jls;
+    Jbl = k.Jbl;
     F = k.F;
     kon = k.kon;
     kcb = k.kcb;
@@ -12,20 +13,21 @@ function [x,y,sol] = SU_model_eval_function(obj,tspan,dose_info)
     kcr = k.kcr;
     kint = k.kint;
     Vb = k.Vb;
+    Vl = k.Vl;
     Vs = k.Vs;
-    N_cells = k.N_cells;
     IC_pstat = k.IC_pstat;
+    N_cells = k.N_cells;
     % Calculating constrained parameters and other initial condition
     kr = kcr*R0;
-    kdg = (1-F)*Jbs/F;
+    kdg = (1-F)*Jls/F;
     
-    obj.y0 = [0,0,N_cells*R0/Vb,0];
+    obj.y0 = [0,0,0,N_cells*R0/Vb,0];
     
     
     if length(dose_info.dose_days) > 1
         [y,sol] = simulate_multiple_doses(obj,tspan,dose_info);
     else
-        obj.y0(1) = dose_info.dose_amounts;
+        obj.y0(dose_info.dose_compartment) = dose_info.dose_amounts./obj.parameters.(dose_info.dose_compartment_volume);
         options = odeset('NonNegative',1,'AbsTol',1e-20);
         dydx = @(x,y) obj.rate_laws(x,y,obj.parameters);
         sol = ode15s(dydx,tspan,obj.y0,options);
@@ -39,7 +41,7 @@ function [x,y,sol] = SU_model_eval_function(obj,tspan,dose_info)
     end
  
     x = tspan;
-    C_per_cell = 6.023e11*y(:,4)*Vb/N_cells;
+    C_per_cell = 6.023e11*y(:,5)*Vb/N_cells;
     pSTAT = C_per_cell./(C_per_cell + IC_pstat);
     y = [y pSTAT];
 
@@ -66,7 +68,7 @@ function [y,sol] = simulate_multiple_doses(obj,tspan,dose_info)
         end
 %         time_beginning = timepoints(1);
 %         timepoints = timepoints - time_beginning;      
-        obj.y0(1) = obj.y0(1) + dose_amounts(ii)/Vs;
+        obj.y0(dose_info.dose_compartment(ii)) = obj.y0(dose_info.dose_compartment(ii)) + dose_amounts(ii)/obj.parameters.(dose_info.dose_compartment_volume(ii));
         options = odeset('NonNegative',1,'AbsTol',1e-20);
         dydx = @(x,y) obj.rate_laws(x,y,obj.parameters);
         sol = ode15s(dydx,timepoints,obj.y0,options);
