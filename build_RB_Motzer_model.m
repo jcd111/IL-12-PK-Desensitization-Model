@@ -18,38 +18,40 @@ addpath(genpath('Motzer Data'));
 fixed_1ugkg = struct();
 fixed_1ugkg.dose_amounts = ones(1,3)*1.0*70*1e6/70000;
 fixed_1ugkg.dose_days = [1 8 15];
+fixed_1ugkg.dose_compartment = [1 1 1];
+fixed_1ugkg.dose_compartment_volume = ["Vs","Vs","Vs"];
 
 % Info for escalating cycle with 0.5 ug/kg target dose.
 esc_05ugkg = struct();
 esc_05ugkg.dose_amounts = [0.1 0.25 0.5].*70.*1e6./70000;
 esc_05ugkg.dose_days = [1 8 15];
+esc_05ugkg.dose_compartment = [1 1 1];
+esc_05ugkg.dose_compartment_volume = ["Vs","Vs","Vs"];
 
 % Info for escalating cycke with 1.0 ug/kg target dose.
 esc_1ugkg = struct();
 esc_1ugkg.dose_amounts = [0.1 0.5 1.0].*70.*1e6./70000;
 esc_1ugkg.dose_days = [1 8 15];
+esc_1ugkg.dose_compartment = [1 1 1];
+esc_1ugkg.dose_compartment_volume = ["Vs","Vs","Vs"];
 
 % info for escalating cycle with 1.25 ug/kg target dose.
 esc_125ugkg = struct();
 esc_125ugkg.dose_amounts = [0.1 0.5 1.25].*70.*1e6./70000;
 esc_125ugkg.dose_days = [1 8 15];
+esc_125ugkg.dose_compartment = [1 1 1];
+esc_125ugkg.dose_compartment_volume = ["Vs","Vs","Vs"];
 
 % info for escalating cycle with 1.5 ug/kg target dose.
 esc_150ugkg = struct();
 esc_150ugkg.dose_amounts = [0.1 0.5 1.5].*70.*1e6./70000;
 esc_150ugkg.dose_days = [1 8 15];
+esc_150ugkg.dose_compartment = [1 1 1];
+esc_150ugkg.dose_compartment_volume = ["Vs","Vs","Vs"];
 
-% consolidating
 dose_schedules = {fixed_1ugkg; esc_05ugkg; esc_1ugkg; esc_125ugkg; esc_150ugkg};
 
-% Setting initial condition
-y0 = [0;0;parameters.R0*parameters.N_cells/parameters.Vb;0];
 
-% setting rate laws
-rate_laws = @(t,y,k) RB_model_rate_laws(t,y,k);
-
-% setting evaluation function
-eval_function = @(obj,tspan,dose_info) RB_model_eval_function(obj,tspan,dose_info);
 
 % setting species name
 species_names = ["S","L","R","C","B","pSTAT"];

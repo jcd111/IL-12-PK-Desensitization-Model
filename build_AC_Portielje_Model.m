@@ -17,17 +17,20 @@ addpath(genpath('Portielje Data'));
 repeat_doses_05_ugkg = struct();
 repeat_doses_05_ugkg.dose_days = [1 8 10 12 15 17 19];
 repeat_doses_05_ugkg.dose_amounts = 0.5*1000*ones(1,7);
+repeat_doses_05_ugkg.dose_compartment = [1 1 1 1 1 1 1];
+repeat_doses_05_ugkg.dose_compartment_volume = ["Vs","Vs","Vs","Vs","Vs","Vs","Vs"];
 % 1.0 ugkg doses
 repeat_doses_1_ugkg = struct();
 repeat_doses_1_ugkg.dose_days = [1 8 10 12 15 17 19];
 repeat_doses_1_ugkg.dose_amounts = 1.0*1000*ones(1,7);
-
+repeat_doses_1_ugkg.dose_compartment = [1 1 1 1 1 1 1];
+repeat_doses_1_ugkg.dose_compartment_volume = ["Vs","Vs","Vs","Vs","Vs","Vs","Vs"];
 % Putting each dose schedule twice because PK metric data is reported twice
 % for each schedule, matching dose schedules to data.
 dose_schedules = {repeat_doses_05_ugkg, repeat_doses_05_ugkg, repeat_doses_1_ugkg, repeat_doses_1_ugkg};
 
 % Setting initial condition
-y0 = [0;0;parameters.R0*parameters.N_cells/parameters.Vb;0];
+y0 = [0;0;0;parameters.R0*parameters.N_cells/parameters.Vb;0];
 
 % setting rate laws
 rate_laws = @(t,y,k) AC_model_rate_laws(t,y,k);
@@ -36,13 +39,13 @@ rate_laws = @(t,y,k) AC_model_rate_laws(t,y,k);
 eval_function = @(obj,tspan,dose_info) AC_model_eval_function(obj,tspan,dose_info);
 
 % setting species name
-species_names = ["IL12s","IL12b","R","C","pSTAT"];
+species_names = ["IL12s","Il12l","IL12b","R","C","pSTAT"];
 
 % loading experimental data
 metric_data = initialize_Portielje_data();
 
 % setting species index that corresponds to data
-data_species = 2;
+data_species = 3;
 
 %% Creating modelstructure object with above fields
 

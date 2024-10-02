@@ -19,20 +19,26 @@ addpath(genpath('Rakhit Data'));
 dose_info_01_ugkg = struct();
 dose_info_01_ugkg.dose_amounts = ones(1,6)*0.1*70*1e6/70000;
 dose_info_01_ugkg.dose_days = [1 8 15 29 36 43];
+dose_info_01_ugkg.dose_compartment = [1 1 1 1 1 1];
+dose_info_01_ugkg.dose_compartment_volume = ["Vs","Vs","Vs","Vs","Vs","Vs"];
 % 0.5 ugkg repeat doses.
 dose_info_05_ugkg = struct();
 dose_info_05_ugkg.dose_amounts = ones(1,6)*0.5*70*1e6/70000;
 dose_info_05_ugkg.dose_days = [1 8 15 29 36 43];
+dose_info_05_ugkg.dose_compartment = [1 1 1 1 1 1];
+dose_info_05_ugkg.dose_compartment_volume = ["Vs","Vs","Vs","Vs","Vs","Vs"];
 % 1.0 ugkg repeat doses.
 dose_info_1_ugkg = struct();
 dose_info_1_ugkg.dose_amounts = ones(1,6)*1.0*70*1e6/70000;
 dose_info_1_ugkg.dose_days = [1 8 15 29 36 43];
+dose_info_1_ugkg.dose_compartment = [1 1 1 1 1 1];
+dose_info_1_ugkg.dose_compartment_volume = ["Vs","Vs","Vs","Vs","Vs","Vs"];
 
 % consolidating
 dose_schedules = {dose_info_01_ugkg; dose_info_05_ugkg; dose_info_1_ugkg};
 
 % Setting initial condition
-y0 = [0;0;parameters.R0*parameters.N_cells/parameters.Vb;0];
+y0 = [0;0;0;parameters.R0*parameters.N_cells/parameters.Vb;0];
 
 % setting rate laws
 rate_laws = @(t,y,k) AC_model_rate_laws(t,y,k);
@@ -41,13 +47,12 @@ rate_laws = @(t,y,k) AC_model_rate_laws(t,y,k);
 eval_function = @(obj,tspan,dose_info) AC_model_eval_function(obj,tspan,dose_info);
 
 % setting species name
-species_names = ["IL12s","IL12b","R","C","pSTAT"];
-
+species_names = ["IL12s","IL12l","IL12b","R","C","pSTAT"];
 % loading experimental data
 experimental_data = initialize_Rakhit_data();
 
 % setting species index that corresponds to data
-data_species = 2;
+data_species = 3;
 
 %% Creating modelstructure object with above fields
 

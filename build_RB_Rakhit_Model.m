@@ -15,18 +15,25 @@ addpath(genpath('Rakhit Data'));
 % Setting up doses for Motzer Clinical Trial
 % Assuming body weight of 70 kg in all cases.
 
+
 % 0.1 ugkg repeat doses.
 dose_info_01_ugkg = struct();
 dose_info_01_ugkg.dose_amounts = ones(1,6)*0.1*70*1e6/70000;
 dose_info_01_ugkg.dose_days = [1 8 15 29 36 43];
+dose_info_01_ugkg.dose_compartment = [1 1 1 1 1 1];
+dose_info_01_ugkg.dose_compartment_volume = ["Vs","Vs","Vs","Vs","Vs","Vs"];
 % 0.5 ugkg repeat doses.
 dose_info_05_ugkg = struct();
 dose_info_05_ugkg.dose_amounts = ones(1,6)*0.5*70*1e6/70000;
 dose_info_05_ugkg.dose_days = [1 8 15 29 36 43];
+dose_info_05_ugkg.dose_compartment = [1 1 1 1 1 1];
+dose_info_05_ugkg.dose_compartment_volume = ["Vs","Vs","Vs","Vs","Vs","Vs"];
 % 1.0 ugkg repeat doses.
 dose_info_1_ugkg = struct();
 dose_info_1_ugkg.dose_amounts = ones(1,6)*1.0*70*1e6/70000;
 dose_info_1_ugkg.dose_days = [1 8 15 29 36 43];
+dose_info_1_ugkg.dose_compartment = [1 1 1 1 1 1];
+dose_info_1_ugkg.dose_compartment_volume = ["Vs","Vs","Vs","Vs","Vs","Vs"];
 
 % consolidating
 dose_schedules = {dose_info_01_ugkg; dose_info_05_ugkg; dose_info_1_ugkg};

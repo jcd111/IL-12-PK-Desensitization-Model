@@ -27,3 +27,15 @@ dose_schedule = 1;
 % first output is timepoints, ommitted because already specified.  Second
 % output, y, is a matrix where the column indices represent the model
 % species and the row indices represent timepoints.
+
+%% Plotting Simulated Serum IL-12 v. Time
+
+% extracting serum IL12 from simulation output and multiplying by molecular
+% weight to convert to pg/mL
+IL12 = 70000*y(:,5);
+
+figure(1)
+clf
+plot(timepoints,IL12,'LineWidth',1.5)
+xlabel('Time (days)')
+ylabel('pg/mL')

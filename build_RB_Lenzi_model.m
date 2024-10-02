@@ -22,6 +22,8 @@ parameters.Vs = 1020;
 dose_info= struct();
 dose_info.dose_amounts = 0.3*70*1e6/70000;
 dose_info.dose_days = 0;
+dose_info.dose_compartment = 1;
+dose_info.dose_compartment_volume = "Vs";
 
 dose_schedules = cell(1,1);
 dose_schedules{1} = dose_info;

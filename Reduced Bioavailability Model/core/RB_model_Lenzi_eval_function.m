@@ -30,7 +30,7 @@ function [x,y,sol] = RB_model_Lenzi_eval_function(obj,tspan,dose_info)
         [y,sol] = simulate_multiple_doses(obj,tspan,dose_info);
     else
         options = odeset('NonNegative',1);
-        obj.y0(1) = beta*dose_info.dose_amounts/Vs;
+        obj.y0(dose_info.dose_compartment) = beta*dose_info.dose_amounts/obj.parameters.(dose_info.dose_compartment_volume);
         dydx = @(x,y) obj.rate_laws(x,y,obj.parameters);
         sol = ode15s(dydx,tspan,obj.y0,options);
         if sol.x(end) < tspan(end)
@@ -67,22 +67,21 @@ function [y,sol] = simulate_multiple_doses(obj,tspan,dose_info)
 % for other dose types. No fixed bioavailability.
     dose_amounts = dose_info.dose_amounts;
     dose_days = dose_info.dose_days;
+    dose_compartment = dose_info.dose_compartment;
+    dose_compartment_volume = dose_info.dose_compartment_volume;
     n_doses = length(dose_amounts);
     n_species = length(obj.y0);
     t_keep = tspan;
-%     tspan = sort(unique([tspan, dose_days, dose_days(end) + (dose_days(end) - dose_days(end-1))]));
+
     tspan = sort(unique([tspan, dose_days, dose_days(end) + 1]));
     y = obj.y0.*ones(length(tspan),n_species);
-    Vs = obj.parameters.Vs;
     for ii = 1:n_doses
         if ii == n_doses
           timepoints = tspan(tspan >= dose_days(ii));
         else
           timepoints = [tspan(tspan >= dose_days(ii) & tspan <= dose_days(ii+1))];
         end
-%         time_beginning = timepoints(1);
-%         timepoints = timepoints - time_beginning;      
-        obj.y0(1) = obj.y0(1) + dose_amounts(ii)/Vs;
+        obj.y0(dose_compartment(ii)) = obj.y0(dose_compartment(ii)) + dose_amounts(ii)/obj.parameters.(dose_compartment_volume(ii));
         options = odeset('NonNegative',1,'AbsTol',1e-12);
         dydx = @(x,y) obj.rate_laws(x,y,obj.parameters);
         sol = ode15s(dydx,timepoints,obj.y0,options);
